@@ -143,7 +143,7 @@ const verifyPassword = async (password: string, storedHash: string) => {
 };
 
 // Optional Authentication Middleware
-const authenticateTokenOptional = (req: any, _res: any, next: any) => {
+const authenticateTokenOptional = (req: any, res: any, next: any) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -183,19 +183,9 @@ const processData = (obj: any): any => {
   return obj;
 };
 
-process.on('uncaughtException', (err) => {
-  console.error('[🚫 Uncaught Exception]', err.stack || err);
-});
-
-process.on('unhandledRejection', (reason: any, promise) => {
-  console.error('[🚫 Unhandled Rejection]', reason?.stack || reason || 'No reason');
-});
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
-
-  console.log("[🏁 Startup] Initializing server components...");
 
   // Trust proxy for correct IP detection behind Cloud Run/Nginx
   app.set("trust proxy", 1);
@@ -925,7 +915,7 @@ async function startServer() {
   }));
 
   // Explicit 404 for API routes to prevent SPA fallback returning HTML
-  app.all("/api/*", (req, res) => {
+  app.all("/api/*all", (req, res) => {
     console.error(`[API] 404 - Route not found: ${req.method} ${req.url}`);
     res.status(404).json({ 
       error: `الرابط غير موجود: ${req.method} ${req.url}`,
@@ -936,7 +926,6 @@ async function startServer() {
 
   // Setup Vite middleware
   if (process.env.NODE_ENV !== "production") {
-    console.log("[Server] Configuring Vite middleware for development...");
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -945,20 +934,9 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    console.log(`[Server] Serving static files from: ${distPath}`);
-    
-    if (!fs.existsSync(distPath)) {
-      console.error(`[Server] ❌ dist directory not found at ${distPath}. Build might have failed.`);
-    }
-
     app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      const indexPath = path.join(distPath, "index.html");
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).send("Index file not found. Ensure the build command was successful.");
-      }
+    app.get("*all", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
@@ -968,34 +946,17 @@ async function startServer() {
     res.status(500).json({ error: "حدث خطأ داخلي في الخادم", details: err.message });
   });
 
-  // Start listening only after all middleware and routes are configured
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[✅ Server] Listening on http://0.0.0.0:${PORT}`);
-  });
-
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`[❌ Error] Port ${PORT} already in use. This shouldn't happen.`);
-    } else {
-      console.error("[❌ Server Error]", err);
+  // Auto init db
+  try {
+    const sql = fs.readFileSync(
+      path.join(process.cwd(), "server", "init.sql"),
+      "utf-8",
+    );
+    const connection = await pool.getConnection();
+    const statements = sql.split(";").filter((stmt) => stmt.trim() !== "");
+    for (const stmt of statements) {
+      await connection.query(stmt);
     }
-  });
-
-  // Background DB init
-  (async () => {
-    console.log("[DB] Starting background schema initialization...");
-    try {
-      const sql = fs.readFileSync(
-        path.join(process.cwd(), "server", "init.sql"),
-        "utf-8",
-      );
-      const connection = await pool.getConnection();
-      console.log("[DB] Got connection for initialization.");
-      const statements = sql.split(";").filter((stmt) => stmt.trim() !== "");
-      for (const stmt of statements) {
-        await connection.query(stmt);
-      }
-      // ... rest of migrations ...
 
     // Ensure password column exists
     try {
@@ -1111,25 +1072,28 @@ async function startServer() {
         if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure tasks.required_skills column: ", e.message);
     }
 
-      connection.release();
-      console.log("[DB] ✅ Database schema initialized.");
+    connection.release();
+    console.log("Database schema initialized.");
 
-      // Ensure super admins have admin role in DB
-      try {
-        for (const email of SUPER_ADMIN_EMAILS) {
-          await pool.query("UPDATE users SET role = 'admin' WHERE email = ?", [email.toLowerCase().trim()]);
-        }
-        console.log("[DB] Super admins promoted.");
-      } catch (err: any) {
-        console.warn("[DB] Could not promote super admins:", err.message);
+    // Ensure super admins have admin role in DB
+    try {
+      for (const email of SUPER_ADMIN_EMAILS) {
+        await pool.query("UPDATE users SET role = 'admin' WHERE email = ?", [email.toLowerCase().trim()]);
       }
-    } catch (e: any) {
-      console.warn(
-        "[DB] ⚠️ Could not auto-initialize DB in background:",
-        e.message,
-      );
+      console.log("Super admins promoted in database.");
+    } catch (err: any) {
+      console.warn("Could not promote super admins:", err.message);
     }
-  })();
+  } catch (e: any) {
+    console.warn(
+      "Could not auto-initialize DB. Check credentials or ignore if already setup:",
+      e.message,
+    );
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
 
 startServer();
