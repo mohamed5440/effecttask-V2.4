@@ -143,7 +143,7 @@ const verifyPassword = async (password: string, storedHash: string) => {
 };
 
 // Optional Authentication Middleware
-const authenticateTokenOptional = (req: any, res: any, next: any) => {
+const authenticateTokenOptional = (req: any, _res: any, next: any) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
