@@ -183,17 +183,31 @@ const processData = (obj: any): any => {
   return obj;
 };
 
+process.on('uncaughtException', (err) => {
+  console.error('[🚫 Uncaught Exception]', err.stack || err);
+});
+
+process.on('unhandledRejection', (reason: any, promise) => {
+  console.error('[🚫 Unhandled Rejection]', reason?.stack || reason || 'No reason');
+});
+
 async function startServer() {
   const app = express();
-  const PORT = parseInt(process.env.PORT || "3000");
+  const PORT = 3000;
 
-  console.log(`[Server] Starting with PORT: ${PORT}, NODE_ENV: ${process.env.NODE_ENV}`);
-  
-  // Binding as early as possible to prevent timeouts
-  app.listen(PORT, "0.0.0.0", () => {
-    const logMsg = `Bound to port ${PORT} at ${new Date().toISOString()}\n`;
-    console.log(`[Server] ✅ ${logMsg}`);
-    fs.appendFileSync(path.join(process.cwd(), "startup.log"), logMsg);
+  console.log("[🏁 Startup] Initializing server components...");
+
+  // 1. Grab port immediately
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[✅ Server] Listening on http://0.0.0.0:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[❌ Error] Port ${PORT} already in use. This shouldn't happen.`);
+    } else {
+      console.error("[❌ Server Error]", err);
+    }
   });
 
   // Trust proxy for correct IP detection behind Cloud Run/Nginx
