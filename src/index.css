@@ -1,0 +1,188 @@
+@import url("https://fonts.googleapis.com/css2?family=Zain:wght@200;300;400;700;800;900&display=swap");
+@import "tailwindcss";
+@import "./styles/design-system.css";
+
+@theme {
+  --font-sans: "Zain", system-ui, sans-serif;
+
+  /* Force uniform radius (0.5rem / 8px) for ALL elements as requested */
+  --radius: 0.5rem;
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.5rem;
+  --radius-full: 0.5rem;
+
+  --color-primary: #000000;
+  --color-secondary: #ffffff;
+}
+
+@layer base {
+  /* Universal reset for elements that should explicitly NOT have border radius */
+  hr, br {
+    border-radius: 0;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    font-size: 16px; /* Base 1rem = 16px */
+  }
+
+  body {
+    @apply antialiased w-full relative min-h-screen overscroll-none overflow-x-clip;
+    font-family: var(--font-sans);
+    background-color: #ffffff;
+    color: #000000;
+    direction: rtl;
+    line-height: 1.5;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* Safety rule for flex/grid items to prevent overflow */
+  :is(div, section, article, main) {
+    min-width: 0;
+  }
+
+  /* Better text wrapping to prevent layout breakages */
+  p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Universal tag styling to ensure design system compliance */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black tracking-tight;
+  }
+
+  h1 { font-size: var(--text-3xl); }
+  h2 { font-size: var(--text-2xl); }
+  h3 { font-size: var(--text-xl); }
+
+  p {
+    font-size: var(--text-base);
+    @apply leading-relaxed;
+  }
+
+  button:not([class*='p-']) {
+    /* Only apply default if no specific padding is set */
+  }
+}
+
+@layer utilities {
+  .responsive-container {
+    @apply w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12;
+  }
+
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8;
+  }
+
+  /* Responsive spacing system */
+  .layout-padding {
+    @apply p-3 sm:p-4 md:p-6 lg:p-8;
+  }
+
+  .section-margin {
+    @apply my-4 sm:my-6 md:my-8 lg:my-12;
+  }
+
+  .flex-responsive {
+    @apply flex flex-col md:flex-row md:items-center;
+  }
+
+  .card-base {
+    @apply bg-white border border-zinc-200 rounded-xl transition-all duration-300 overflow-hidden;
+  }
+
+  /* Improved spacing consistency */
+  .section-spacing {
+    @apply space-y-6 sm:space-y-8 lg:space-y-12;
+  }
+
+  /* Modal content scroll utility */
+  .modal-scroll {
+    @apply overflow-y-auto max-h-[80vh] sm:max-h-[70vh] overscroll-contain;
+  }
+
+  /* Smooth scroll for kanban and other elements */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer base {
+  /* Prevent horizontal scroll globally across all sub-elements */
+  html,
+  body {
+    @apply w-full overflow-x-hidden scroll-smooth;
+    max-width: 100vw;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Keep images and SVGs responsive */
+  img,
+  video,
+  svg {
+    @apply max-w-full h-auto;
+  }
+
+  img {
+    @apply object-cover;
+  }
+
+  /* Focus rings for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-black/5 ring-offset-2;
+  }
+
+  /* Improve typography responsiveness with fluid scales using DS variables */
+  h1 {
+    font-size: var(--text-xl);
+    @apply sm:text-[calc(var(--text-3xl))] md:text-[calc(var(--text-4xl))] lg:text-[calc(var(--text-5xl))] font-black tracking-tight leading-tight;
+  }
+  h2 {
+    font-size: var(--text-lg);
+    @apply sm:text-[calc(var(--text-2xl))] md:text-[calc(var(--text-3xl))] font-bold tracking-tight leading-snug;
+  }
+  h3 {
+    font-size: var(--text-base);
+    @apply sm:text-[calc(var(--text-xl))] md:text-[calc(var(--text-2xl))] font-bold tracking-tight;
+  }
+
+  /* Universal button base consistency */
+  button {
+    @apply transition-all duration-200 active:scale-95 cursor-pointer disabled:opacity-50;
+  }
+
+  /* Better inputs and buttons for touch devices */
+  input,
+  textarea,
+  select {
+    @apply transition-all duration-200 text-base; /* Prevent iOS zoom by using at least 16px */
+  }
+
+  button,
+  a {
+    @apply cursor-pointer touch-manipulation;
+  }
+
+  /* Touch targets minimum size */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+/* Ensure no italics across the app */
+* {
+  font-style: normal !important;
+  outline-color: #000000;
+}
