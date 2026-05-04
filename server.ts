@@ -197,19 +197,6 @@ async function startServer() {
 
   console.log("[🏁 Startup] Initializing server components...");
 
-  // 1. Grab port immediately
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[✅ Server] Listening on http://0.0.0.0:${PORT}`);
-  });
-
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`[❌ Error] Port ${PORT} already in use. This shouldn't happen.`);
-    } else {
-      console.error("[❌ Server Error]", err);
-    }
-  });
-
   // Trust proxy for correct IP detection behind Cloud Run/Nginx
   app.set("trust proxy", 1);
 
@@ -979,6 +966,19 @@ async function startServer() {
   app.use((err: any, _req: any, res: any, _next: any) => {
     console.error("[Global Error]:", err);
     res.status(500).json({ error: "حدث خطأ داخلي في الخادم", details: err.message });
+  });
+
+  // Start listening only after all middleware and routes are configured
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[✅ Server] Listening on http://0.0.0.0:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[❌ Error] Port ${PORT} already in use. This shouldn't happen.`);
+    } else {
+      console.error("[❌ Server Error]", err);
+    }
   });
 
   // Background DB init
