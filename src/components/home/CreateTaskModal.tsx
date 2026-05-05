@@ -70,7 +70,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white rounded-xl w-full max-w-2xl border border-zinc-100 flex flex-col max-h-[90vh] overflow-hidden relative"
+            className="bg-white rounded-xl w-full max-w-4xl border border-zinc-100 flex flex-col max-h-[90vh] overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button Integrated - Top Corner */}

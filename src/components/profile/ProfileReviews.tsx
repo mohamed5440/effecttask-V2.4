@@ -38,7 +38,7 @@ export const ProfileReviews: React.FC<ProfileReviewsProps> = ({ reviews }) => {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 px-2"
+        className="grid grid-cols-1 gap-4 px-2"
       >
         {reviews.length === 0 ? (
           <div className="text-xs font-bold text-zinc-400 p-8 text-center bg-white rounded-xl border border-zinc-100 border-dashed uppercase tracking-widest">

@@ -64,7 +64,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
         </div>
 
-        <div className="mb-8 w-full max-w-2xl px-2 sm:px-0">
+        <div className="mb-8 w-full max-w-4xl px-2 sm:px-0">
           <p className="text-zinc-500 text-sm sm:text-base leading-relaxed font-medium break-words">
             {user.bio || "لا يوجد نبذة شخصية متاحة حالياً."}
           </p>

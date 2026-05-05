@@ -78,7 +78,7 @@ export default function Home() {
     <div className="flex flex-col gap-6 sm:gap-10 font-sans">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 md:gap-8 border-b border-zinc-100/50 pb-6 sm:pb-8 md:pb-12 text-start px-0">
-        <div className="text-start max-w-2xl px-0 space-y-2 sm:space-y-3">
+        <div className="text-start max-w-4xl px-0 space-y-2 sm:space-y-3">
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-black tracking-tight mb-1 uppercase leading-tight">
             {isAdmin
               ? "لوحة تحكم المسؤول"
@@ -150,10 +150,10 @@ export default function Home() {
         {/* Task List Column */}
         <div
           className={cn(
-            "flex flex-col gap-4 transition-all duration-300 w-full min-w-0",
+            "transition-all duration-300 w-full min-w-0 gap-4",
              selectedTaskId 
-               ? "hidden lg:flex lg:col-span-5 xl:col-span-4" 
-               : "flex col-span-1 lg:col-span-10 lg:col-start-2 xl:col-span-8 xl:col-start-3",
+               ? "hidden lg:flex lg:flex-col lg:col-span-4" 
+               : "flex flex-col col-span-1 lg:col-span-12",
           )}
         >
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
@@ -186,7 +186,7 @@ export default function Home() {
                     setSelectedTaskId(null);
                   }}
                   className={cn(
-                    "flex-1 py-2 sm:py-2.5 md:py-3 text-[10px] sm:text-[11px] md:text-xs font-black rounded-lg sm:rounded-xl transition-all",
+                    "flex-1 py-1.5 sm:py-2 md:py-2.5 text-[10px] sm:text-[11px] md:text-xs font-black rounded-lg sm:rounded-xl transition-all",
                     taskFilter === filter
                       ? "bg-black text-white"
                       : "text-zinc-500 hover:text-black",
@@ -202,7 +202,12 @@ export default function Home() {
             })}
           </div>
 
-          <div className="flex flex-col gap-4 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto pe-0">
+          <div className={cn(
+            "gap-3 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto px-1 sm:pe-2 custom-scrollbar transition-all",
+             selectedTaskId 
+               ? "flex flex-col py-1 lg:pe-4" 
+               : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          )}>
             <AnimatePresence mode="popLayout">
               {filteredTasks.map((task) => (
                 <TaskCard
@@ -210,6 +215,7 @@ export default function Home() {
                   task={task}
                   isSelected={selectedTaskId === task.id}
                   isAssignedToMe={task.assignedToUser === currentUser?.id}
+                  isSidebarLayout={!!selectedTaskId}
                   onClick={() => {
                     setSelectedTaskId(task.id);
                     setIsApplying(false);
@@ -230,7 +236,7 @@ export default function Home() {
 
         {/* Task Details Column */}
         {selectedTaskId && (
-          <div className="flex flex-col col-span-1 lg:col-span-7 xl:col-span-8 w-full min-w-0">
+          <div className="flex flex-col col-span-1 lg:col-span-8 w-full min-w-0">
             <TaskDetailsView
               selectedTask={selectedTask}
               currentUser={currentUser}

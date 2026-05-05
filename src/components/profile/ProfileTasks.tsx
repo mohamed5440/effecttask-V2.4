@@ -140,11 +140,11 @@ export const ProfileTasks: React.FC<ProfileTasksProps> = ({
             initial="hidden"
             animate="show"
             exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
           >
             {(isOwnProfile ? [...inProgressTasks, ...completedTasks] : tasks)
               .length === 0 ? (
-              <div className="bg-white rounded-xl border border-zinc-100 border-dashed p-6 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-4 group hover:border-black transition-colors col-span-1 sm:col-span-2">
+              <div className="bg-white rounded-xl border border-zinc-100 border-dashed p-6 sm:p-10 md:p-16 flex flex-col items-center justify-center gap-4 group hover:border-black transition-colors col-span-full">
                 <div className="w-16 h-16 rounded-full bg-zinc-50 flex items-center justify-center border border-zinc-100 group-hover:bg-black transition-all">
                   <Target className="w-8 h-8 text-zinc-300 group-hover:text-white transition-all" />
                 </div>
@@ -165,35 +165,48 @@ export const ProfileTasks: React.FC<ProfileTasksProps> = ({
                 <motion.div
                   key={task.id}
                   variants={item}
-                  className="card-base p-4 sm:p-5 md:p-6 relative group transition-colors hover:border-black/20 text-start"
+                  className="card-base p-4 sm:p-5 relative group transition-colors hover:border-black/20 text-start flex flex-col h-full"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-black tracking-tight line-clamp-1">
-                        {task.title}
-                      </h3>
-                      {task.status === "in_progress" && (
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-bold rounded-lg border border-blue-100">
-                          قيد التنفيذ
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-tighter shrink-0">
-                      {formatDistanceToNow(task.createdAt, { locale: ar })}
+                  <div className="flex justify-between items-start mb-2 gap-2">
+                    <span className="text-[10px] text-zinc-400 font-bold bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-100">
+                      {formatDistanceToNow(task.createdAt, { locale: ar, addSuffix: true })}
                     </span>
+                    {task.status === "in_progress" && (
+                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded border border-blue-100 whitespace-nowrap">
+                        قيد التنفيذ
+                      </span>
+                    )}
+                    {task.status === "completed" && (
+                      <span className="px-1.5 py-0.5 bg-green-50 text-green-600 text-[9px] font-black rounded border border-green-100 whitespace-nowrap">
+                        منجز
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-zinc-600 leading-relaxed line-clamp-2">
-                    {task.description}
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-zinc-50 flex flex-wrap gap-2 justify-end">
-                    {task.requiredSkills?.map((s) => (
+
+                  <h3 className="font-black text-black tracking-tighter text-sm sm:text-base mb-2 break-words line-clamp-1">
+                    {task.title}
+                  </h3>
+                  
+                  {task.description && (
+                    <p className="text-[11px] sm:text-xs text-zinc-500 leading-relaxed line-clamp-2 mb-4 flex-1">
+                      {task.description}
+                    </p>
+                  )}
+
+                  <div className="mt-auto pt-3 border-t border-zinc-50 flex flex-wrap gap-1.5">
+                    {task.requiredSkills?.slice(0, 2).map((s) => (
                       <span
                         key={s}
-                        className="text-[9px] font-bold bg-white text-black border border-zinc-100 px-2 py-0.5 rounded-xl uppercase tracking-tight"
+                        className="text-[9px] font-bold bg-white text-zinc-400 border border-zinc-100 px-1.5 py-0.5 rounded uppercase tracking-tighter"
                       >
                         {s}
                       </span>
                     ))}
+                    {task.requiredSkills && task.requiredSkills.length > 2 && (
+                      <span className="text-[9px] font-bold text-zinc-300 px-1">
+                        +{task.requiredSkills.length - 2}
+                      </span>
+                    )}
                   </div>
                 </motion.div>
               ))

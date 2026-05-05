@@ -173,24 +173,24 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 sm:gap-8 mb-8 md:mb-10 text-start">
         <div className="flex-1 min-w-0 w-full space-y-3 sm:space-y-4 md:space-y-5">
           <div className="flex items-center gap-3 flex-wrap text-start">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tight break-words leading-tight uppercase">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-black tracking-tighter break-words leading-none uppercase">
               {selectedTask.title}
             </h1>
             {currentUser && selectedTask.assignedToUser === currentUser.id && (
-              <span className="bg-green-600 text-white px-3 py-1 rounded-xl text-[10px] sm:text-xs font-black inline-flex items-center gap-1.5 shadow-sm shadow-green-100">
+              <span className="bg-black text-white px-3 py-1 rounded-lg text-[10px] sm:text-xs font-black inline-flex items-center gap-1.5 shadow-sm">
                 <CheckCircle className="w-3.5 h-3.5" />
                 {selectedTask.status === "completed" ? "أنجزتها أنت" : "تم تعيينها لك"}
               </span>
             )}
           </div>
-          <div className="flex items-center flex-wrap gap-x-5 gap-y-3 text-xs sm:text-[13px] text-zinc-500 font-bold uppercase tracking-tight">
-            <span className="whitespace-nowrap flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />
+          <div className="flex items-center flex-wrap gap-x-6 gap-y-3 text-xs sm:text-sm text-zinc-400 font-bold uppercase tracking-tight">
+            <span className="whitespace-nowrap flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-zinc-300" />
               {formatRelativeTime(selectedTask.createdAt)}
             </span>
-            <div className="flex items-center gap-3 flex-wrap">
-              <StatusBadge status={selectedTask.status} />
-              <DurationBadge duration={selectedTask.duration} />
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <StatusBadge status={selectedTask.status} className="h-6 font-black" />
+              <DurationBadge duration={selectedTask.duration} className="h-6 font-black" />
             </div>
           </div>
         </div>
@@ -289,14 +289,14 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
       {(selectedTask.requiredSkills?.length ?? 0) > 0 && (
         <div className="mb-10 text-start">
-          <h3 className="text-xs font-bold text-black mb-3 uppercase tracking-wider">
+          <h3 className="text-xs font-bold text-zinc-400 mb-3 uppercase tracking-widest">
             المهارات المطلوبة
           </h3>
           <div className="flex flex-wrap gap-2 justify-start">
             {selectedTask.requiredSkills?.map((skill) => (
               <span
                 key={skill}
-                className="px-3 py-1 bg-white text-black rounded-xl text-sm font-bold border border-zinc-200"
+                className="px-3 py-1.5 bg-black/[0.02] text-black rounded-lg text-sm font-bold border border-black/5"
               >
                 {skill}
               </span>
@@ -454,10 +454,10 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
       {/* Applicants View */}
       {(selectedTask.status === "open" || taskApplicants.length > 0) && (
         <div className="mt-auto pt-10 border-t border-zinc-100 text-start">
-          <h3 className="text-lg font-bold text-black mb-6 flex items-center gap-2 justify-start">
-            <span className="bg-black text-white py-0.5 px-2 rounded-xl text-sm font-sans">
+          <h3 className="text-lg font-bold text-black mb-6 flex items-center gap-3 justify-start">
+            <div className="bg-black text-white w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black shrink-0">
               {taskApplicants.length}
-            </span>
+            </div>
             المتقدمون
           </h3>
 

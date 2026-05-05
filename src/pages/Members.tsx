@@ -130,7 +130,7 @@ export default function Members() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-6 max-w-2xl w-full"
+            className="space-y-6 max-w-5xl w-full"
           >
             {/* Add Individual Email */}
             <div className="bg-zinc-50/50 border border-zinc-100 rounded-xl p-5 sm:p-8 space-y-6">

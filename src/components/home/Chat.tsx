@@ -301,7 +301,7 @@ export default function Chat({ taskId, partnerId }: ChatProps) {
                                       <img
                                         src={url}
                                         alt=""
-                                        className="w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                        className="w-auto h-auto max-w-[200px] sm:max-w-[250px] max-h-[250px] object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity bg-black/5"
                                         referrerPolicy="no-referrer"
                                       />
                                     ) : (

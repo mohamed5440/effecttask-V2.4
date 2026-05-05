@@ -75,11 +75,11 @@
 
 @layer utilities {
   .responsive-container {
-    @apply w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12;
+    @apply w-full max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12;
   }
 
   .grid-responsive {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6 lg:gap-8;
   }
 
   /* Responsive spacing system */
@@ -110,6 +110,16 @@
   }
 
   /* Smooth scroll for kanban and other elements */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-200 rounded-full hover:bg-zinc-300 transition-colors;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

@@ -239,8 +239,8 @@ async function startServer() {
     validate: { trustProxy: false },
   });
 
-  app.use(express.json({ limit: "10mb" })); // Reduced limit to prevent DoS
-  app.use(express.urlencoded({ limit: "10mb", extended: true }));
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // --- Validation Schemas ---
   const signupSchema = z.object({
@@ -299,7 +299,7 @@ async function startServer() {
   const messageSchema = z.object({
     taskId: z.string().min(1),
     receiverId: z.string().min(1),
-    content: z.string().min(1).max(5000),
+    content: z.string().max(5000).optional().default(""),
     attachments: z.array(z.string()).optional(),
     replyToId: z.string().optional().nullable(),
   });
