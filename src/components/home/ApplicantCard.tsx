@@ -72,7 +72,7 @@ export const ApplicantCard: React.FC<ApplicantCardProps> = ({
             <div className="flex flex-wrap gap-2 justify-start">
               {application.budget && (
                 <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-xl text-[10px] font-bold border border-amber-100">
-                  عرض السعر: {application.budget}
+                  عرض السعر: {application.budget} جنيه مصري
                 </span>
               )}
               {application.estimatedDuration && (
@@ -90,6 +90,7 @@ export const ApplicantCard: React.FC<ApplicantCardProps> = ({
                   <a
                     key={idx}
                     href={url}
+                    download={`attachment_${idx + 1}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     referrerPolicy="no-referrer"

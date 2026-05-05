@@ -145,7 +145,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs font-black text-black px-1 uppercase tracking-widest">
-                      المدة (أيام)
+                      المدة (ساعات)
                     </label>
                     <div className="relative group/duration">
                       <input

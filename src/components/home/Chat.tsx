@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useStore } from "../../store";
 import { Message, User } from "../../types";
-import { Send, MessageSquare, Check, CheckCheck, X, Plus } from "lucide-react";
+import { Send, MessageSquare, Check, CheckCheck, X, Plus, File } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "../../lib/utils";
@@ -286,27 +286,47 @@ export default function Chat({ taskId, partnerId }: ChatProps) {
                               "grid grid-cols-1 gap-1 min-w-0 sm:min-w-[200px]",
                               msg.content && "mb-1"
                             )}>
-                              {msg.attachments?.map((url, i) => (
-                                <a
-                                  key={i}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block w-full overflow-hidden rounded-xl"
-                                >
-                                  <img
-                                    src={url}
-                                    alt=""
-                                    className="w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                </a>
-                              ))}
+                              {msg.attachments?.map((url, i) => {
+                                const isImage = url.startsWith("data:image/") || url.match(/\.(jpeg|jpg|gif|png)$/i);
+                                return (
+                                  <a
+                                    key={i}
+                                    href={url}
+                                    download={`chat_attachment_${i + 1}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full overflow-hidden rounded-xl"
+                                  >
+                                    {isImage ? (
+                                      <img
+                                        src={url}
+                                        alt=""
+                                        className="w-full h-auto max-h-[300px] sm:max-h-[400px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-3 p-4 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors">
+                                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-zinc-200">
+                                          <File className="w-5 h-5 text-zinc-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
+                                            ملف مرفق
+                                          </p>
+                                          <p className="text-xs font-bold text-zinc-800 truncate">
+                                            تحميل الملف
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
 
                           {msg.content && (
-                            <div className="px-4 py-3">
+                            <div className="px-4 py-3 break-words whitespace-pre-wrap">
                               {msg.content}
                             </div>
                           )}
@@ -402,25 +422,34 @@ export default function Chat({ taskId, partnerId }: ChatProps) {
               exit={{ height: 0, opacity: 0 }}
               className="p-4 flex flex-wrap gap-3 bg-zinc-50/50"
             >
-              {attachments.map((url, i) => (
-                <div key={i} className="relative group shrink-0">
-                  <img
-                    src={url}
-                    alt=""
-                    className="w-16 h-16 rounded-xl object-cover border border-zinc-200"
-                  />
-                  <button
-                    onClick={() =>
-                      setAttachments((prev) =>
-                        prev.filter((_, idx) => idx !== i),
-                      )
-                    }
-                    className="absolute -top-1.5 -start-1.5 bg-black text-white p-0.5 rounded-xl"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+              {attachments.map((url, i) => {
+                const isImage = url.startsWith("data:image/") || url.match(/\.(jpeg|jpg|gif|png)$/i);
+                return (
+                  <div key={i} className="relative group shrink-0">
+                    {isImage ? (
+                      <img
+                        src={url}
+                        alt=""
+                        className="w-16 h-16 rounded-xl object-cover border border-zinc-200"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-white border border-zinc-200 flex items-center justify-center">
+                        <File className="w-6 h-6 text-zinc-300" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() =>
+                        setAttachments((prev) =>
+                          prev.filter((_, idx) => idx !== i),
+                        )
+                      }
+                      className="absolute -top-1.5 -start-1.5 bg-black text-white p-0.5 rounded-xl"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
               {isUploading && (
                 <div className="w-16 h-16 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center">
                   <span className="text-[10px] font-bold text-zinc-400">
@@ -450,14 +479,13 @@ export default function Chat({ taskId, partnerId }: ChatProps) {
                 onChange={handleFileUpload}
                 className="hidden"
                 multiple
-                accept="image/*"
               />
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="p-2 sm:p-2.5 rounded-xl text-zinc-400 hover:bg-zinc-100 hover:text-black transition-all disabled:opacity-30 active:scale-95 shrink-0"
-                title="إرفاق صورة"
+                title="إرفاق ملف"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>

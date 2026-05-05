@@ -1,6 +1,6 @@
 import React from "react";
 import { Task } from "../../types";
-import { Users } from "lucide-react";
+import { Users, CheckCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { motion } from "motion/react";
 import { StatusBadge, DurationBadge } from "../ui/Badge";
@@ -54,9 +54,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               {applicantsCount}
             </span>
           )}
-          {isAssignedToMe && task.status === "in_progress" && (
-            <span className="bg-green-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-black">
-              تم تعيينها لك
+          {(task.status === "in_progress" || task.status === "completed") && isAssignedToMe && (
+            <span className="bg-green-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-black inline-flex items-center gap-1.5 shadow-sm shadow-green-100">
+              <CheckCircle className="w-3 h-3" />
+              {task.status === "completed" ? "أنجزتها أنت" : "تم تعيينها لك"}
             </span>
           )}
         </div>

@@ -176,6 +176,12 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
             <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-black tracking-tight break-words leading-tight uppercase">
               {selectedTask.title}
             </h1>
+            {currentUser && selectedTask.assignedToUser === currentUser.id && (
+              <span className="bg-green-600 text-white px-3 py-1 rounded-xl text-[10px] sm:text-xs font-black inline-flex items-center gap-1.5 shadow-sm shadow-green-100">
+                <CheckCircle className="w-3.5 h-3.5" />
+                {selectedTask.status === "completed" ? "أنجزتها أنت" : "تم تعيينها لك"}
+              </span>
+            )}
           </div>
           <div className="flex items-center flex-wrap gap-x-5 gap-y-3 text-xs sm:text-[13px] text-zinc-500 font-bold uppercase tracking-tight">
             <span className="whitespace-nowrap flex items-center gap-2">
@@ -257,6 +263,7 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
                 <a
                   key={idx}
                   href={url}
+                  download={`attachment_${idx + 1}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
@@ -318,12 +325,18 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
                 </label>
                 <div className="relative group/budget">
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
-                    className="w-full px-4 py-3.5 sm:py-4 rounded-xl border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all text-sm bg-white font-sans text-start"
-                    placeholder="مثال: 100 ريال"
+                    className="w-full px-4 py-3.5 sm:py-4 rounded-xl border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all text-sm bg-white font-sans text-start pe-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
                   />
+                  <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none">
+                    <span className="text-sm font-bold text-black font-sans">
+                      جنيه مصري
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 text-start">
@@ -342,7 +355,7 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
                       "w-full px-4 py-3.5 sm:py-4 rounded-xl border border-zinc-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all text-sm bg-white font-sans text-start [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                       !isDurationFocused && estimatedDuration ? "text-transparent" : "text-black"
                     )}
-                    placeholder="عدد الأيام"
+                    placeholder="عدد الساعات"
                   />
                   {!isDurationFocused && estimatedDuration && (
                     <div className="absolute inset-y-0 end-4 flex items-center pointer-events-none">

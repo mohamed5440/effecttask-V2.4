@@ -39,6 +39,18 @@ const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
       return sendError(res, error.status, error.message);
     }
     console.error(error);
+    
+    // Provide a clearer error message for Database connectivity issues to help the user.
+    if (error.code === 'ETIMEDOUT' || error.message?.includes('ETIMEDOUT')) {
+      return sendError(res, 500, "تعذر الاتصال بقاعدة البيانات (Timeout). يرجى التأكد من إضافة عنوان IP الخاص بالخادم إلى قائمة السماح (Remote MySQL -> Allow IP: %) في إعدادات الاستضافة، وتأكد من صحة Host و Port.", error.message);
+    }
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+      return sendError(res, 500, "تم رفض الاتصال بقاعدة البيانات. يرجى التأكد من عمل الخادم وصحة المنفذ (Port).", error.message);
+    }
+    if (error.code === 'EAI_AGAIN' || error.code === 'ENOTFOUND') {
+       return sendError(res, 500, "لم يتم العثور على عنوان قاعدة البيانات (Host). تأكد من صحة MYSQL_HOST في متغيرات البيئة.", error.message);
+    }
+
     return sendError(res, 500, "حدث خطأ غير متوقع في النظام، يرجى المحاولة لاحقاً", error.message);
   });
 };
@@ -56,7 +68,8 @@ const buildUpdate = (table: string, id: string, data: any, allowedFields: Record
     const dbField = allowedFields[key];
     if (dbField) {
       updates.push(`${dbField} = ?`);
-      values.push(typeof val === "object" && val !== null ? JSON.stringify(val) : val);
+      const isDate = val instanceof Date;
+      values.push(!isDate && typeof val === "object" && val !== null ? JSON.stringify(val) : val);
     }
   }
   if (updates.length === 0) return null;
@@ -208,8 +221,8 @@ async function startServer() {
   // 4. Rate Limiting
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 1000 requests per windowMs
-    message: { error: "Too many requests from this IP, please try again after 15 minutes" },
+    max: 5000, // Increased limit for better user experience in dev
+    message: { error: "لقد تجاوزت عدد الطلبات المسموح بها، يرجى المحاولة بعد 15 دقيقة" },
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false },
@@ -662,13 +675,15 @@ async function startServer() {
       reactions: "reactions"
     };
 
-    const update = buildUpdate("messages", req.params.id, req.body, allowedFields);
+    const updateData = { ...req.body };
+    if (updateData.readAt) {
+      updateData.readAt = new Date(updateData.readAt);
+    }
+    const update = buildUpdate("messages", req.params.id, updateData, allowedFields);
+    
     if (update) {
-      // Special handling for readAt which needs to be a Date
-      if (req.body.readAt) {
-        const index = update.sql.split("=").findIndex(s => s.trim().endsWith("read_at"));
-        if (index !== -1) update.values[index] = new Date(req.body.readAt);
-      }
+      // Fix JSON stringification for dates
+      update.values = update.values.map(v => v instanceof Date ? v : v);
       await pool.query(update.sql, update.values);
     }
     
@@ -946,154 +961,172 @@ async function startServer() {
     res.status(500).json({ error: "حدث خطأ داخلي في الخادم", details: err.message });
   });
 
-  // Auto init db
-  try {
-    const sql = fs.readFileSync(
-      path.join(process.cwd(), "server", "init.sql"),
-      "utf-8",
-    );
-    const connection = await pool.getConnection();
-    const statements = sql.split(";").filter((stmt) => stmt.trim() !== "");
-    for (const stmt of statements) {
-      await connection.query(stmt);
-    }
-
-    // Ensure password column exists
-    try {
-      const [columns]: any = await connection.query(
-        "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'bio' AND TABLE_SCHEMA = DATABASE()",
-      );
-      if (columns.length === 0) {
-        await connection.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER avatar");
-        console.log("Added bio column to users table.");
-      }
-    } catch (err) {
-      console.warn("Could not ensure bio column:", err);
-    }
-
-    try {
-      const [columns]: any = await connection.query(
-        "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'rating' AND TABLE_SCHEMA = DATABASE()",
-      );
-      if (columns.length === 0) {
-        await connection.query("ALTER TABLE users ADD COLUMN rating DOUBLE DEFAULT 0 AFTER bio");
-        console.log("Added rating column to users table.");
-      }
-    } catch (err) {
-      console.warn("Could not ensure rating column:", err);
-    }
-
-    try {
-      const [columns]: any = await connection.query(
-        "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'completed_tasks_count' AND TABLE_SCHEMA = DATABASE()",
-      );
-      if (columns.length === 0) {
-        await connection.query("ALTER TABLE users ADD COLUMN completed_tasks_count INT DEFAULT 0 AFTER skills");
-        console.log("Added completed_tasks_count column to users table.");
-      }
-    } catch (err) {
-      console.warn("Could not ensure completed_tasks_count column:", err);
-    }
-
-    try {
-      const [columns]: any = await connection.query(
-        "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'password' AND TABLE_SCHEMA = DATABASE()",
-      );
-      if (columns.length === 0) {
-        await connection.query("ALTER TABLE users ADD COLUMN password VARCHAR(255) AFTER email");
-        console.log("Added password column to users table.");
-      }
-    } catch (err) {
-      console.warn("Could not ensure password column:", err);
-    }
-    
-    // Upgrade column types to LONGTEXT for data URLs
-    try {
-        await connection.query("ALTER TABLE users MODIFY avatar LONGTEXT;");
-        // Check if attachments column exists, if not rename attachment_url or add it
-        const [taskCols]: any = await connection.query(
-            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
-        );
-        if (taskCols.length === 0) {
-            const [urlCols]: any = await connection.query(
-                "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'attachment_url' AND TABLE_SCHEMA = DATABASE()"
-            );
-            if (urlCols.length > 0) {
-                await connection.query("ALTER TABLE tasks CHANGE attachment_url attachments JSON;");
-                console.log("Renamed attachment_url to attachments in tasks table.");
-            } else {
-                await connection.query("ALTER TABLE tasks ADD COLUMN attachments JSON AFTER duration;");
-                console.log("Added attachments column to tasks table.");
-            }
-        }
-
-        // Check applications table
-        const [appCols]: any = await connection.query(
-            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'applications' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
-        );
-        if (appCols.length === 0) {
-            await connection.query("ALTER TABLE applications ADD COLUMN attachments JSON AFTER estimated_duration;");
-            console.log("Added attachments column to applications table.");
-        }
-
-        // Check messages table
-        const [msgCols]: any = await connection.query(
-            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
-        );
-        if (msgCols.length === 0) {
-            await connection.query("ALTER TABLE messages ADD COLUMN attachments JSON AFTER content;");
-            console.log("Added attachments column to messages table.");
-        }
-    } catch(err) {
-        console.warn("Could not alter table columns:", err);
-    }
-
-    try {
-        await connection.query("ALTER TABLE users ADD COLUMN skills JSON;");
-    } catch (e: any) {
-        if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.skills column: ", e.message);
-    }
-
-    try {
-        await connection.query("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE;");
-    } catch (e: any) {
-        if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.is_online column: ", e.message);
-    }
-
-    try {
-        await connection.query("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;");
-    } catch (e: any) {
-        if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.last_seen column: ", e.message);
-    }
-
-    try {
-        await connection.query("ALTER TABLE tasks ADD COLUMN required_skills JSON;");
-    } catch (e: any) {
-        if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure tasks.required_skills column: ", e.message);
-    }
-
-    connection.release();
-    console.log("Database schema initialized.");
-
-    // Ensure super admins have admin role in DB
-    try {
-      for (const email of SUPER_ADMIN_EMAILS) {
-        await pool.query("UPDATE users SET role = 'admin' WHERE email = ?", [email.toLowerCase().trim()]);
-      }
-      console.log("Super admins promoted in database.");
-    } catch (err: any) {
-      console.warn("Could not promote super admins:", err.message);
-    }
-  } catch (e: any) {
-    console.warn(
-      "Could not auto-initialize DB. Check credentials or ignore if already setup:",
-      e.message,
-    );
-  }
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // Auto init db (non-blocking)
+  (async () => {
+    try {
+      const sql = fs.readFileSync(
+        path.join(process.cwd(), "server", "init.sql"),
+        "utf-8",
+      );
+      const connection = await pool.getConnection();
+      const statements = sql.split(";").filter((stmt: string) => stmt.trim() !== "");
+      for (const stmt of statements) {
+        await connection.query(stmt);
+      }
+
+      // Ensure password column exists
+      try {
+        const [columns]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'bio' AND TABLE_SCHEMA = DATABASE()",
+        );
+        if (columns.length === 0) {
+          await connection.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER avatar");
+          console.log("Added bio column to users table.");
+        }
+      } catch (err) {
+        console.warn("Could not ensure bio column:", err);
+      }
+
+      try {
+        const [columns]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'rating' AND TABLE_SCHEMA = DATABASE()",
+        );
+        if (columns.length === 0) {
+          await connection.query("ALTER TABLE users ADD COLUMN rating DOUBLE DEFAULT 0 AFTER bio");
+          console.log("Added rating column to users table.");
+        }
+      } catch (err) {
+        console.warn("Could not ensure rating column:", err);
+      }
+
+      try {
+        const [columns]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'completed_tasks_count' AND TABLE_SCHEMA = DATABASE()",
+        );
+        if (columns.length === 0) {
+          await connection.query("ALTER TABLE users ADD COLUMN completed_tasks_count INT DEFAULT 0 AFTER skills");
+          console.log("Added completed_tasks_count column to users table.");
+        }
+      } catch (err) {
+        console.warn("Could not ensure completed_tasks_count column:", err);
+      }
+
+      try {
+        const [columns]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'password' AND TABLE_SCHEMA = DATABASE()",
+        );
+        if (columns.length === 0) {
+          await connection.query("ALTER TABLE users ADD COLUMN password VARCHAR(255) AFTER email");
+          console.log("Added password column to users table.");
+        }
+      } catch (err) {
+        console.warn("Could not ensure password column:", err);
+      }
+      
+      // Upgrade column types to LONGTEXT for data URLs
+      try {
+          await connection.query("ALTER TABLE users MODIFY avatar LONGTEXT;");
+          // Check if attachments column exists, if not rename attachment_url or add it
+          const [taskCols]: any = await connection.query(
+              "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
+          );
+          if (taskCols.length === 0) {
+              const [urlCols]: any = await connection.query(
+                  "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'attachment_url' AND TABLE_SCHEMA = DATABASE()"
+              );
+              if (urlCols.length > 0) {
+                  await connection.query("ALTER TABLE tasks CHANGE attachment_url attachments JSON;");
+                  console.log("Renamed attachment_url to attachments in tasks table.");
+              } else {
+                  await connection.query("ALTER TABLE tasks ADD COLUMN attachments JSON AFTER duration;");
+                  console.log("Added attachments column to tasks table.");
+              }
+          }
+
+          // Check applications table
+          const [appCols]: any = await connection.query(
+              "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'applications' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
+          );
+          if (appCols.length === 0) {
+              await connection.query("ALTER TABLE applications ADD COLUMN attachments JSON AFTER estimated_duration;");
+              console.log("Added attachments column to applications table.");
+          }
+
+          // Check messages table
+          const [msgCols]: any = await connection.query(
+              "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
+          );
+          if (msgCols.length === 0) {
+              await connection.query("ALTER TABLE messages ADD COLUMN attachments JSON AFTER content;");
+              console.log("Added attachments column to messages table.");
+          }
+
+          const [msgColsReadAt]: any = await connection.query(
+              "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'read_at' AND TABLE_SCHEMA = DATABASE()"
+          );
+          if (msgColsReadAt.length === 0) {
+              await connection.query("ALTER TABLE messages ADD COLUMN read_at DATETIME NULL;");
+              console.log("Added read_at column to messages table.");
+          }
+          
+          const [msgColsReactions]: any = await connection.query(
+              "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'reactions' AND TABLE_SCHEMA = DATABASE()"
+          );
+          if (msgColsReactions.length === 0) {
+              await connection.query("ALTER TABLE messages ADD COLUMN reactions JSON;");
+              console.log("Added reactions column to messages table.");
+          }
+      } catch(err) {
+          console.warn("Could not alter table columns:", err);
+      }
+
+      try {
+          await connection.query("ALTER TABLE users ADD COLUMN skills JSON;");
+      } catch (e: any) {
+          if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.skills column: ", e.message);
+      }
+
+      try {
+          await connection.query("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE;");
+      } catch (e: any) {
+          if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.is_online column: ", e.message);
+      }
+
+      try {
+          await connection.query("ALTER TABLE users ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;");
+      } catch (e: any) {
+          if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure users.last_seen column: ", e.message);
+      }
+
+      try {
+          await connection.query("ALTER TABLE tasks ADD COLUMN required_skills JSON;");
+      } catch (e: any) {
+          if(e.code !== 'ER_DUP_FIELDNAME') console.warn("Ensure tasks.required_skills column: ", e.message);
+      }
+
+      connection.release();
+      console.log("Database schema initialized.");
+
+      // Ensure super admins have admin role in DB
+      try {
+        for (const email of SUPER_ADMIN_EMAILS) {
+          await pool.query("UPDATE users SET role = 'admin' WHERE email = ?", [email.toLowerCase().trim()]);
+        }
+        console.log("Super admins promoted in database.");
+      } catch (err: any) {
+        console.warn("Could not promote super admins:", err.message);
+      }
+    } catch (e: any) {
+      console.warn(
+        "Could not auto-initialize DB. Check credentials or ignore if already setup:",
+        e.message,
+      );
+    }
+  })();
 }
 
 startServer();
