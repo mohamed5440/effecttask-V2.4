@@ -22,6 +22,7 @@ import Chat from "./Chat";
 import { ApplicantCard } from "./ApplicantCard";
 import { useStore } from "../../store";
 import { StatusBadge, DurationBadge } from "../ui/Badge";
+import { ConfirmModal } from "../ui/ConfirmModal";
 import { formatRelativeTime, formatDuration } from "../../lib/formatters";
 
 interface TaskDetailsViewProps {
@@ -196,7 +197,7 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0 self-stretch sm:self-auto mt-2 sm:mt-0 items-start">
-          {isAdmin && selectedTask.status === "open" && (
+          {(isAdmin || selectedTask.authorId === currentUser?.id) && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100 flex items-center justify-center gap-2"
@@ -510,14 +511,14 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
         </motion.div>
       )}
 
-      {/* Assigned User View */}
-      {selectedTask.status === "in_progress" && selectedTask.assignedToUser && (
+      {/* Assigned/Completed User View */}
+      {(selectedTask.status === "in_progress" || selectedTask.status === "completed") && selectedTask.assignedToUser && (
         <div className="mt-auto pt-8 sm:pt-10 border-t border-zinc-100 text-start">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
             <h3 className="text-xs sm:text-sm font-bold text-zinc-500 uppercase tracking-tight">
-              تم تعيين المهمة إلى
+              {selectedTask.status === "completed" ? "أنجزت بواسطة" : "تم تعيين المهمة إلى"}
             </h3>
-            {isAdmin && (
+            {isAdmin && selectedTask.status === "in_progress" && (
               <button
                 onClick={onShowRatingModal}
                 className="w-full sm:w-auto px-4 py-2 sm:py-1.5 bg-black text-white hover:bg-zinc-800 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
@@ -546,45 +547,16 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
                   <h4 className="font-bold text-black text-sm sm:text-base">
                     {assignedUser.name}
                   </h4>
-                  <p className="text-[11px] sm:text-xs text-zinc-500 mt-0.5 font-medium">
-                    منفذ المهمة
-                  </p>
-                </div>
-              </div>
-            ) : null;
-          })()}
-        </div>
-      )}
-
-      {/* Completed User View */}
-      {selectedTask.status === "completed" && selectedTask.assignedToUser && (
-        <div className="mt-auto pt-8 sm:pt-10 border-t border-zinc-100 text-start">
-          <h3 className="text-xs sm:text-sm font-bold text-zinc-500 mb-3 sm:mb-4 uppercase tracking-tight">
-            أنجزت بواسطة
-          </h3>
-          {(() => {
-            const assignedUser = users.find(
-              (u) => u.id === selectedTask.assignedToUser,
-            );
-            return assignedUser ? (
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white p-3 sm:p-4 rounded-xl border border-zinc-200 text-center sm:text-start">
-                <img
-                  src={
-                    assignedUser.avatar ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(assignedUser.name || "مستخدم")}&background=000&color=fff`
-                  }
-                  alt=""
-                  loading="lazy"
-                  className="w-12 h-12 sm:w-10 sm:h-10 rounded-xl border border-zinc-200 bg-white object-cover aspect-square"
-                />
-                <div className="text-center sm:text-start">
-                  <h4 className="font-bold text-black text-sm sm:text-base">
-                    {assignedUser.name}
-                  </h4>
-                  <p className="text-[11px] sm:text-xs text-black mt-0.5 flex items-center justify-center sm:justify-start gap-1 font-bold">
-                    <span>المهمة مكتملة</span>
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  </p>
+                  {selectedTask.status === "completed" ? (
+                    <p className="text-[11px] sm:text-xs text-black mt-0.5 flex items-center justify-center sm:justify-start gap-1 font-bold">
+                      <span>المهمة مكتملة</span>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    </p>
+                  ) : (
+                    <p className="text-[11px] sm:text-xs text-zinc-500 mt-0.5 font-medium">
+                      منفذ المهمة
+                    </p>
+                  )}
                 </div>
               </div>
             ) : null;
@@ -628,55 +600,18 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
           </div>
         )}
       {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center p-3 sm:p-6"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-t-xl sm:rounded-xl w-full max-w-sm border border-zinc-200 p-6 sm:p-8 md:p-10 flex flex-col gap-6 sm:gap-8 relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-50 text-red-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                  <Trash2 className="w-8 h-8 sm:w-10 sm:h-10" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl sm:text-2xl font-black text-black">
-                    تأكيد حذف المهمة
-                  </h3>
-                  <p className="text-sm sm:text-base text-zinc-500 font-medium leading-relaxed px-2">
-                    هل أنت متأكد من رغبتك في حذف هذه المهمة نهائياً من النظام؟
-                    لا يمكن التراجع عن هذا الإجراء.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    onDeleteTask(selectedTask.id);
-                    setShowDeleteConfirm(false);
-                    onBack();
-                  }}
-                  className="w-full py-4 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors active:scale-95"
-                >
-                  نعم، احذف المهمة
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="w-full py-4 bg-zinc-50 text-zinc-500 rounded-xl font-bold hover:bg-zinc-100 transition-colors"
-                >
-                  تراجع
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          onDeleteTask(selectedTask.id);
+          onBack();
+        }}
+        title="تأكيد حذف المهمة"
+        description="هل أنت متأكد من رغبتك في حذف هذه المهمة نهائياً من النظام؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="نعم، احذف المهمة"
+        cancelText="تراجع"
+      />
     </motion.div>
   );
 };

@@ -54,7 +54,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (
 
       await get().fetchInitialData();
     } catch (err: any) {
-      console.error("Initialization error:", err);
+      // console.error("Initialization error:", err);
       set({ error: "حدث خطأ في النظام" });
     }
   },
@@ -63,7 +63,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (
     try {
       await dbService.sendOffline();
     } catch(e) {
-      console.error(e);
+      // console.error(e);
     }
     localStorage.removeItem("app_session");
     set({ currentUser: null });

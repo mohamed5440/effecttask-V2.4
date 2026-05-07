@@ -56,7 +56,10 @@ export default function Profile() {
   const userReviews = reviews
     .filter((r) => r.userId === user.id)
     .sort((a, b) => b.createdAt - a.createdAt);
+  
   const isOwnProfile = currentUser?.id === user.id;
+  const isAdmin = currentUser?.role === "admin";
+  const canEdit = isOwnProfile || isAdmin;
 
   return (
     <div className="w-full space-y-6 sm:space-y-8 lg:space-y-12 mb-20 md:mb-0 text-start">
@@ -67,7 +70,7 @@ export default function Profile() {
       >
         <ProfileHeader
           user={user}
-          isOwnProfile={isOwnProfile}
+          isOwnProfile={canEdit}
           onEdit={() => setIsEditing(true)}
         />
 
@@ -86,7 +89,7 @@ export default function Profile() {
         </div>
       </motion.div>
 
-      {isOwnProfile && (
+      {canEdit && (
         <EditProfileModal
           isOpen={isEditing}
           onClose={() => setIsEditing(false)}

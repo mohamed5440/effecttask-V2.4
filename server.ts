@@ -18,7 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-me";
 
 // Standardize response format for errors
 const sendError = (res: any, status: number, message: string, details?: any) => {
-  console.log(`[API Error Response] Status: ${status}, Message: ${message}`, details ? JSON.stringify(details) : "");
+  // console.log(`[API Error Response] Status: ${status}, Message: ${message}`, details ? JSON.stringify(details) : "");
   return res.status(status).json({
     status: "error",
     error: message,
@@ -109,13 +109,13 @@ const authenticateToken = (req: any, res: any, next: any) => {
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    console.log(`[Auth] No token provided for ${req.method} ${req.url}`);
+    // console.log(`[Auth] No token provided for ${req.method} ${req.url}`);
     return res.status(401).json({ error: "Access denied" });
   }
 
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
     if (err) {
-      console.log(`[Auth] Invalid token for ${req.method} ${req.url}: ${err.message}`);
+      // console.log(`[Auth] Invalid token for ${req.method} ${req.url}: ${err.message}`);
       return res.status(403).json({ error: "Invalid token" });
     }
     req.user = user;
@@ -317,10 +317,10 @@ async function startServer() {
   // --- End Validation Schemas ---
 
   // Debug logging for all requests
-  app.use((req, _res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-  });
+  // app.use((req, _res, next) => {
+  //   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  //   next();
+  // });
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "connected";
@@ -377,17 +377,17 @@ async function startServer() {
       const { email, password } = req.body;
       const cleanEmail = email.toLowerCase().trim();
       
-      console.log(`[Auth] Login attempt: ${cleanEmail}`);
+      // console.log(`[Auth] Login attempt: ${cleanEmail}`);
 
       const [rows]: any = await pool.query("SELECT * FROM users WHERE email = ?", [cleanEmail]);
       let user = rows[0];
       
       const isSuperAdmin = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase().trim() === cleanEmail);
-      console.log(`[Auth] Target: ${cleanEmail}, Exists: ${!!user}, IsSuperAdmin: ${isSuperAdmin}`);
+      // console.log(`[Auth] Target: ${cleanEmail}, Exists: ${!!user}, IsSuperAdmin: ${isSuperAdmin}`);
 
       if (!user) {
         if (isSuperAdmin) {
-          console.log(`[Auth] Auto-creating super admin: ${cleanEmail}`);
+          // console.log(`[Auth] Auto-creating super admin: ${cleanEmail}`);
           const newUserId = `admin_${Date.now()}`;
           const recoveryHash = await hashPassword("RECOVER_ADMIN_2026");
           await pool.query(
@@ -405,13 +405,13 @@ async function startServer() {
       const isPasswordValid = await verifyPassword(password, user.password || "");
       
       if (!isPasswordValid && !isRecovery) {
-        console.log(`[Auth] Auth failed for ${cleanEmail}`);
+        // console.log(`[Auth] Auth failed for ${cleanEmail}`);
         return sendError(res, 401, "كلمة المرور غير صحيحة");
       }
 
       // Migration/Reset logic
       if (isRecovery || (isPasswordValid && !user.password?.startsWith("$2"))) {
-        console.log(`[Auth] Updating password hash for ${cleanEmail}`);
+        // console.log(`[Auth] Updating password hash for ${cleanEmail}`);
         const newHash = await hashPassword(password);
         await pool.query("UPDATE users SET password = ? WHERE email = ?", [newHash, cleanEmail]);
       }
@@ -424,7 +424,7 @@ async function startServer() {
         try { sessionUser.skills = JSON.parse(sessionUser.skills); } catch(e) {}
       }
 
-      console.log(`[Auth] Login success: ${cleanEmail} (${role})`);
+      // console.log(`[Auth] Login success: ${cleanEmail} (${role})`);
       res.json({ user: processData(sessionUser), token });
     } catch (error) {
       console.error("[Auth] Login error:", error);
@@ -542,7 +542,17 @@ async function startServer() {
     if (task.author_id !== req.user.id && req.user.role !== "admin") {
       throw new AppError(403, "غير مصرح لك بحذف هذه المهمة");
     }
-    await pool.query("DELETE FROM tasks WHERE id = ?", [req.params.id]);
+    
+    // Manually delete related records to avoid constraint issues or orphans
+    // Note: applications table has ON DELETE CASCADE
+    const taskId = req.params.id;
+    await pool.query("DELETE FROM messages WHERE task_id = ?", [taskId]);
+    await pool.query("DELETE FROM ratings WHERE task_id = ?", [taskId]);
+    await pool.query("DELETE FROM reviews WHERE task_id = ?", [taskId]);
+    await pool.query("DELETE FROM task_status_history WHERE task_id = ?", [taskId]);
+    await pool.query("DELETE FROM notifications WHERE target_id = ?", [taskId]);
+    
+    await pool.query("DELETE FROM tasks WHERE id = ?", [taskId]);
     res.json({ success: true });
   }));
 
@@ -978,14 +988,13 @@ async function startServer() {
         await connection.query(stmt);
       }
 
-      // Ensure password column exists
+      // Ensure additional columns exist (Migrations)
       try {
         const [columns]: any = await connection.query(
           "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'bio' AND TABLE_SCHEMA = DATABASE()",
         );
         if (columns.length === 0) {
           await connection.query("ALTER TABLE users ADD COLUMN bio TEXT AFTER avatar");
-          console.log("Added bio column to users table.");
         }
       } catch (err) {
         console.warn("Could not ensure bio column:", err);
@@ -997,7 +1006,6 @@ async function startServer() {
         );
         if (columns.length === 0) {
           await connection.query("ALTER TABLE users ADD COLUMN rating DOUBLE DEFAULT 0 AFTER bio");
-          console.log("Added rating column to users table.");
         }
       } catch (err) {
         console.warn("Could not ensure rating column:", err);
@@ -1009,7 +1017,6 @@ async function startServer() {
         );
         if (columns.length === 0) {
           await connection.query("ALTER TABLE users ADD COLUMN completed_tasks_count INT DEFAULT 0 AFTER skills");
-          console.log("Added completed_tasks_count column to users table.");
         }
       } catch (err) {
         console.warn("Could not ensure completed_tasks_count column:", err);
@@ -1021,16 +1028,15 @@ async function startServer() {
         );
         if (columns.length === 0) {
           await connection.query("ALTER TABLE users ADD COLUMN password VARCHAR(255) AFTER email");
-          console.log("Added password column to users table.");
         }
       } catch (err) {
         console.warn("Could not ensure password column:", err);
       }
       
-      // Upgrade column types to LONGTEXT for data URLs
+      // Upgrade column types and check attachments
       try {
           await connection.query("ALTER TABLE users MODIFY avatar LONGTEXT;");
-          // Check if attachments column exists, if not rename attachment_url or add it
+          
           const [taskCols]: any = await connection.query(
               "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'tasks' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
           );
@@ -1040,29 +1046,23 @@ async function startServer() {
               );
               if (urlCols.length > 0) {
                   await connection.query("ALTER TABLE tasks CHANGE attachment_url attachments JSON;");
-                  console.log("Renamed attachment_url to attachments in tasks table.");
               } else {
                   await connection.query("ALTER TABLE tasks ADD COLUMN attachments JSON AFTER duration;");
-                  console.log("Added attachments column to tasks table.");
               }
           }
 
-          // Check applications table
           const [appCols]: any = await connection.query(
               "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'applications' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
           );
           if (appCols.length === 0) {
               await connection.query("ALTER TABLE applications ADD COLUMN attachments JSON AFTER estimated_duration;");
-              console.log("Added attachments column to applications table.");
           }
 
-          // Check messages table
           const [msgCols]: any = await connection.query(
               "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'attachments' AND TABLE_SCHEMA = DATABASE()"
           );
           if (msgCols.length === 0) {
               await connection.query("ALTER TABLE messages ADD COLUMN attachments JSON AFTER content;");
-              console.log("Added attachments column to messages table.");
           }
 
           const [msgColsReadAt]: any = await connection.query(
@@ -1070,7 +1070,6 @@ async function startServer() {
           );
           if (msgColsReadAt.length === 0) {
               await connection.query("ALTER TABLE messages ADD COLUMN read_at DATETIME NULL;");
-              console.log("Added read_at column to messages table.");
           }
           
           const [msgColsReactions]: any = await connection.query(
@@ -1078,7 +1077,6 @@ async function startServer() {
           );
           if (msgColsReactions.length === 0) {
               await connection.query("ALTER TABLE messages ADD COLUMN reactions JSON;");
-              console.log("Added reactions column to messages table.");
           }
       } catch(err) {
           console.warn("Could not alter table columns:", err);
@@ -1111,12 +1109,10 @@ async function startServer() {
       connection.release();
       console.log("Database schema initialized.");
 
-      // Ensure super admins have admin role in DB
       try {
         for (const email of SUPER_ADMIN_EMAILS) {
           await pool.query("UPDATE users SET role = 'admin' WHERE email = ?", [email.toLowerCase().trim()]);
         }
-        console.log("Super admins promoted in database.");
       } catch (err: any) {
         console.warn("Could not promote super admins:", err.message);
       }

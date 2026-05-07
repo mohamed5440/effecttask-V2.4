@@ -32,7 +32,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       }
     } else {
       const status = response.status;
-      console.error(`Non-JSON response (Status ${status}) from ${endpoint}:`, text.substring(0, 200));
+      // console.error(`Non-JSON response (Status ${status}) from ${endpoint}:`, text.substring(0, 200));
       if (status === 404) {
         throw new Error(`الرابط غير موجود على الخادم (404). يرجى التأكد من أن النظام يعمل بشكل صحيح.`);
       }
@@ -43,8 +43,6 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     }
     
     if (!response.ok) {
-      console.warn(`[API Response Error] ${endpoint} returned ${response.status}. Full result:`, result);
-      console.warn(`Type of result: ${typeof result}, keys: ${result && typeof result === 'object' ? Object.keys(result).join(", ") : 'n/a'}`);
       let errorMessage = "حدث خطأ غير معروف أثناء معالجة الطلب (Fallback)";
       
       if (result) {
@@ -75,15 +73,10 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     return { data: transformed, error: null };
   } catch (error: any) {
     if (error.message !== "Access denied" && error.message !== "Unauthorized") {
-      console.error(`API Error (${endpoint}):`, error.message);
+      // console.error(`API Error (${endpoint}):`, error.message);
     }
     return { data: null, error: error.message };
   }
-};
-
-export const dbQuery = async (_sql: string, _values?: any[]) => {
-  console.warn("dbQuery is deprecated and insecure. Use specific API endpoints instead.");
-  return { data: null, error: "Direct SQL queries are disabled for security reasons." };
 };
 
 export const apiLogin = async (credentials: any) => {

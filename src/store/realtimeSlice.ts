@@ -106,7 +106,7 @@ export const createRealtimeSlice: StateCreator<
         if (error) {
           // Silent failure for guests or unauthorized fetches to avoid console noise
           if (error === "Access denied") return; 
-          console.error(`Error fetching ${table}:`, error);
+          // console.error(`Error fetching ${table}:`, error);
         }
         if (data) {
           const finalData = (data as any[]).map((item) => {

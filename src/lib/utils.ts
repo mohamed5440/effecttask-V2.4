@@ -5,27 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function camelToSnake(str: string) {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-}
-
-export function toSnakeCaseObject(obj: any): any {
-  if (Array.isArray(obj)) return obj.map(toSnakeCaseObject);
-  if (obj !== null && typeof obj === "object") {
-    return Object.keys(obj).reduce((acc, key) => {
-      const snakeKey = camelToSnake(key);
-      let val = obj[key];
-      if (typeof val === "object" && val !== null && !(val instanceof Date)) {
-        val = toSnakeCaseObject(val);
-      }
-      acc[snakeKey] = val;
-      return acc;
-    }, {} as any);
-  }
-  return obj;
-}
-
-export function snakeToCamel(str: string) {
+function snakeToCamel(str: string) {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
 }
 

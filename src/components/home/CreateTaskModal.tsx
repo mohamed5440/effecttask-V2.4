@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { X, Upload, CheckCircle2 } from "lucide-react";
+import { Upload, CheckCircle2 } from "lucide-react";
+import { Modal } from "../ui/Modal";
 import { useStore } from "../../store";
 import { cn } from "../../lib/utils";
 import { formatDuration } from "../../lib/formatters";
@@ -59,43 +59,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white rounded-xl w-full max-w-4xl border border-zinc-100 flex flex-col max-h-[90vh] overflow-hidden relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button Integrated - Top Corner */}
-            <button
-              onClick={onClose}
-              className="absolute top-6 start-6 p-2 bg-zinc-50 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-100 transition-all z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="px-6 sm:px-12 py-10 overflow-y-auto custom-scrollbar">
-              <div className="mb-8 text-center sm:text-start">
-                <h2 className="text-2xl sm:text-3xl font-black text-black tracking-tight mb-2">
-                  نشر مهمة جديدة
-                </h2>
-                <p className="text-sm font-medium text-zinc-400">
-                  املأ البيانات التالية لتبدأ في استقبال العروض من المحترفين
-                </p>
-              </div>
-
-              <form
-                id="create-task-form"
-                onSubmit={handleSubmit}
-                className="space-y-8 text-start"
-              >
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="نشر مهمة جديدة"
+      description="املأ البيانات التالية لتبدأ في استقبال العروض من المحترفين"
+    >
+      <form
+        id="create-task-form"
+        onSubmit={handleSubmit}
+        className="space-y-8 text-start"
+      >
                 <div className="space-y-2">
                   <label className="block text-xs font-black text-black px-1 uppercase tracking-widest">
                     عنوان المهمة
@@ -255,10 +229,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   </button>
                 </div>
               </form>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </Modal>
   );
 };

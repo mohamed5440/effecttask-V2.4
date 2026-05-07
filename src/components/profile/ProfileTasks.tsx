@@ -163,24 +163,27 @@ export const ProfileTasks: React.FC<ProfileTasksProps> = ({
                 : tasks
               ).map((task) => (
                 <motion.div
+                  id={`profile-task-${task.id}`}
                   key={task.id}
                   variants={item}
                   className="card-base p-4 sm:p-5 relative group transition-colors hover:border-black/20 text-start flex flex-col h-full"
                 >
                   <div className="flex justify-between items-start mb-2 gap-2">
-                    <span className="text-[10px] text-zinc-400 font-bold bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-100">
-                      {formatDistanceToNow(task.createdAt, { locale: ar, addSuffix: true })}
-                    </span>
-                    {task.status === "in_progress" && (
-                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded border border-blue-100 whitespace-nowrap">
-                        قيد التنفيذ
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[10px] text-zinc-400 font-bold bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-100">
+                        {formatDistanceToNow(task.createdAt, { locale: ar, addSuffix: true })}
                       </span>
-                    )}
-                    {task.status === "completed" && (
-                      <span className="px-1.5 py-0.5 bg-green-50 text-green-600 text-[9px] font-black rounded border border-green-100 whitespace-nowrap">
-                        منجز
-                      </span>
-                    )}
+                      {task.status === "in_progress" && (
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded border border-blue-100 whitespace-nowrap">
+                          قيد التنفيذ
+                        </span>
+                      )}
+                      {task.status === "completed" && (
+                        <span className="px-1.5 py-0.5 bg-green-50 text-green-600 text-[9px] font-black rounded border border-green-100 whitespace-nowrap">
+                          منجز
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <h3 className="font-black text-black tracking-tighter text-sm sm:text-base mb-2 break-words line-clamp-1">

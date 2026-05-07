@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Camera, X } from "lucide-react";
+import { Camera } from "lucide-react";
 import { User } from "../../types";
+import { Modal } from "../ui/Modal";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -64,59 +64,38 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    await onSave({
-      name: editData.name,
-      skills,
-      bio: editData.bio,
-      avatar: editData.avatar,
-    });
-    setIsSaving(false);
-    onClose();
+    try {
+      await onSave({
+        name: editData.name,
+        skills,
+        bio: editData.bio,
+        avatar: editData.avatar,
+      });
+      onClose();
+    } catch (e: any) {
+      console.error("Save error:", e);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 text-start"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white rounded-xl w-full max-w-4xl border border-zinc-100 flex flex-col max-h-[90vh] overflow-hidden relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button Integrated - Top Corner */}
-            <button
-              onClick={onClose}
-              className="absolute top-6 start-6 p-2 bg-zinc-50 rounded-xl text-zinc-400 hover:text-black hover:bg-zinc-100 transition-all z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="تعديل الملف الشخصي"
+      description="قم بتحديث بياناتك وصورتك الشخصية ليتمكن المسؤولون من تقييمك بشكل أفضل"
+    >
+      {error && (
+        <div className="mb-10 p-4 bg-red-50 border border-red-100 rounded-xl text-center flex items-center justify-center gap-2">
+          <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          <p className="text-xs font-bold text-red-600 font-sans tracking-tight">
+            {error}
+          </p>
+        </div>
+      )}
 
-            <div className="px-6 sm:px-12 py-10 overflow-y-auto custom-scrollbar">
-              <div className="mb-8 text-center sm:text-start">
-                <h2 className="text-2xl sm:text-3xl font-black text-black tracking-tight mb-2">
-                  تعديل الملف الشخصي
-                </h2>
-                <p className="text-sm font-medium text-zinc-400 leading-relaxed max-w-lg">
-                  قم بتحديث بياناتك وصورتك الشخصية ليتمكن المسؤولون من تقييمك بشكل أفضل
-                </p>
-              </div>
-
-              {error && (
-                <div className="mb-10 p-4 bg-red-50 border border-red-100 rounded-xl text-center flex items-center justify-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  <p className="text-xs font-bold text-red-600 font-sans tracking-tight">
-                    {error}
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-10">
+      <div className="space-y-10">
                 {/* Avatar Section */}
                 <div className="flex flex-col items-center sm:items-start gap-1">
                   <label className="block text-xs font-black text-black px-1 uppercase tracking-widest mb-2">
@@ -221,11 +200,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     إلغاء
                   </button>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </Modal>
   );
 };

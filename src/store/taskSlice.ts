@@ -265,7 +265,7 @@ export const createTaskSlice: StateCreator<AppState, [], [], TaskSlice> = (
         currentUser:
           state.currentUser?.id === userId ? formattedUser : state.currentUser,
       }));
-      toast.success("تم تحديث معلومات ملفك الشخصي بنجاح.");
+      toast.success("تم تحديث معلومات الملف الشخصي بنجاح.");
     }
   },
 
@@ -314,14 +314,19 @@ export const createTaskSlice: StateCreator<AppState, [], [], TaskSlice> = (
   },
 
   deleteTask: async (taskId: string) => {
-    const { currentUser } = get();
-    if (currentUser?.role !== "admin") return;
+    const { currentUser, tasks } = get();
+    const task = tasks.find((t) => t.id === taskId);
+    if (currentUser?.role !== "admin" && task?.authorId !== currentUser?.id) {
+      toast.error("غير مصرح لك بحذف هذه المهمة");
+      return;
+    }
     const { error } = await dbService.deleteTask(taskId);
     if (error) {
-      toast.error(typeof error === 'string' ? error : "عذراً، لم نتمكن من حذف المهمة");
+      toast.error(typeof error === "string" ? error : "عذراً، لم نتمكن من حذف المهمة");
     } else {
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== taskId),
+        selectedTaskId: state.selectedTaskId === taskId ? null : state.selectedTaskId,
       }));
       toast.success("تمت إزالة المهمة من النظام بنجاح.");
     }
